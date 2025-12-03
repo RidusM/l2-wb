@@ -11,13 +11,12 @@ import (
 
 const (
 	ntpServer = "ntp0.ntp-servers.net"
-	exitCodeErr = 1
 )
 
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(exitCodeErr)
+		os.Exit(1)
 	}
 }
 

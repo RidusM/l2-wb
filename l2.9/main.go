@@ -19,10 +19,12 @@ func Unpack(s string) (string, error) {
 	}
 
 	runes := []rune(s)
+	
 	var result strings.Builder
 	result.Grow(len(s) * 2)
 
 	escaped := false
+
 	var prevRune rune
 	hasPrevRune := false
 
@@ -108,7 +110,7 @@ func main() {
 		for _, arg := range os.Args[1:] {
 			result, err := Unpack(arg)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error unpacking %q: %v\n", arg, err)
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
 			fmt.Printf("%q -> %q\n", arg, result)

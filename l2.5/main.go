@@ -15,8 +15,8 @@ func test() *customError { // return value is customError
 
 func main() {
 	var err error
-	err = test()    // err => data = nil, type = *customError
-	if err != nil { // err != nil, cuz err type is not nil | data and type should be nil
+	err = test()           // err => data = nil, type = *customError
+	if err.Error() != "" { // err != nil, cuz err type is not nil | data and type should be nil
 		println("error")
 		return
 	}
