@@ -1,0 +1,26 @@
+networks:
+  app-network:
+    driver: bridge
+    name: app-network
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: order-service-app
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      db-migrator:
+        condition: service_completed_successfully
+    ports:
+      - "${HTTP_PORT:-8080}:${HTTP_PORT:-8080}"
+      - "${METRICS_PORT:-8081}:${METRICS_PORT:-8081}"
+    networks:
+      - app-network
+    environment:
+      - CONFIG_PATH=/app/configs/dev.env
+    restart: on-failure
