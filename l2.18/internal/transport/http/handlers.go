@@ -42,6 +42,7 @@ func (h *CalendarHandler) createEventHandler(c *gin.Context) {
 	var req CreateEventRequest
 	if svcErr := c.ShouldBindJSON(&req); svcErr != nil {
 		h.handleBindError(c, svcErr, op)
+		return
 	}
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), _defaultContextTimeout)
@@ -57,7 +58,7 @@ func (h *CalendarHandler) createEventHandler(c *gin.Context) {
 		logger.Uint64("event_id", event.ID),
 	)
 
-	c.JSON(http.StatusOK, gin.H{"result": "Event create successfully"})
+	c.JSON(http.StatusOK, event)
 }
 
 // @Summary Обновить событие
@@ -86,6 +87,7 @@ func (h *CalendarHandler) updateEventHandler(c *gin.Context) {
 	var req UpdateEventRequest
 	if bindErr := c.ShouldBindJSON(&req); bindErr != nil {
 		h.handleBindError(c, bindErr, op)
+		return
 	}
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), _defaultContextTimeout)
@@ -101,7 +103,7 @@ func (h *CalendarHandler) updateEventHandler(c *gin.Context) {
 		logger.Uint64("event_id", event.ID),
 	)
 
-	c.JSON(http.StatusOK, gin.H{"result": "Event update successfully"})
+	c.JSON(http.StatusOK, event)
 }
 
 // @Summary Удалить событие
@@ -130,6 +132,7 @@ func (h *CalendarHandler) deleteEventHandler(c *gin.Context) {
 	var req DeleteEventRequest
 	if bindErr := c.ShouldBindJSON(&req); bindErr != nil {
 		h.handleBindError(c, bindErr, op)
+		return
 	}
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), _defaultContextTimeout)
@@ -152,7 +155,8 @@ func (h *CalendarHandler) deleteEventHandler(c *gin.Context) {
 // @Tags Events
 // @Accept json
 // @Produce json
-// @Param request body httpt.GetEventForDayRequest true "Данные запроса: UserID и Date"
+// @Param user_id query int true "ID пользователя"
+// @Param date query string true "Дата в формате RFC3339"
 // @Success 200 {object} httpt.EventsResponse
 // @Failure 400 {object} httpt.ErrorResponse
 // @Failure 500 {object} httpt.ErrorResponse
@@ -161,32 +165,26 @@ func (h *CalendarHandler) getEventsForDayHandler(c *gin.Context) {
 	const op = "transport.getEventsForDayHandler"
 	log := h.log.Ctx(c.Request.Context())
 
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
-	if err != nil || id <= 0 {
-		h.handleEventIDError(c, op, id)
-		return
-	}
-
 	var req GetEventForDayRequest
-	if svcErr := c.ShouldBindJSON(&req); svcErr != nil {
+	if svcErr := c.ShouldBindQuery(&req); svcErr != nil {
 		h.handleBindError(c, svcErr, op)
+		return
 	}
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), _defaultContextTimeout)
 	defer cancel()
 
-	event, err := h.svc.GetEventsForDay(ctx, req.UserID, req.Date)
+	events, err := h.svc.GetEventsForDay(ctx, req.UserID, req.Date)
 	if err != nil {
 		h.handleServiceError(c, err, op)
 		return
 	}
 
-	log.LogAttrs(ctx, logger.InfoLevel, "event for day retreived successfully",
-		logger.Slice("events", event),
+	log.LogAttrs(ctx, logger.InfoLevel, "events for day retrieved successfully",
+		logger.Int("count", len(events)),
 	)
 
-	c.JSON(http.StatusOK, gin.H{"result": "Event deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"result": events})
 }
 
 // @Summary Получить события на неделю
@@ -194,7 +192,8 @@ func (h *CalendarHandler) getEventsForDayHandler(c *gin.Context) {
 // @Tags Events
 // @Accept json
 // @Produce json
-// @Param request body GetEventForWeekRequest true "Данные запроса: UserID и StartDate"
+// @Param user_id query int true "ID пользователя"
+// @Param start_date query string true "Дата начала в формате RFC3339"
 // @Success 200 {object} httpt.EventsResponse
 // @Failure 400 {object} httpt.ErrorResponse
 // @Failure 500 {object} httpt.ErrorResponse
@@ -203,32 +202,26 @@ func (h *CalendarHandler) getEventsForWeekHandler(c *gin.Context) {
 	const op = "transport.getEventsForWeekHandler"
 	log := h.log.Ctx(c.Request.Context())
 
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
-	if err != nil || id <= 0 {
-		h.handleEventIDError(c, op, id)
-		return
-	}
-
 	var req GetEventForWeekRequest
-	if svcErr := c.ShouldBindJSON(&req); svcErr != nil {
+	if svcErr := c.ShouldBindQuery(&req); svcErr != nil {
 		h.handleBindError(c, svcErr, op)
+		return
 	}
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), _defaultContextTimeout)
 	defer cancel()
 
-	event, err := h.svc.GetEventsForWeek(ctx, req.UserID, req.StartDate)
+	events, err := h.svc.GetEventsForWeek(ctx, req.UserID, req.StartDate)
 	if err != nil {
 		h.handleServiceError(c, err, op)
 		return
 	}
 
-	log.LogAttrs(ctx, logger.InfoLevel, "event for week retreived successfully",
-		logger.Slice("events", event),
+	log.LogAttrs(ctx, logger.InfoLevel, "events for week retrieved successfully",
+		logger.Int("count", len(events)),
 	)
 
-	c.JSON(http.StatusOK, event)
+	c.JSON(http.StatusOK, gin.H{"result": events})
 }
 
 // @Summary Получить события на месяц
@@ -236,7 +229,9 @@ func (h *CalendarHandler) getEventsForWeekHandler(c *gin.Context) {
 // @Tags Events
 // @Accept json
 // @Produce json
-// @Param request body GetEventForMonthRequest true "Данные запроса: UserID, Year и Month"
+// @Param user_id query int true "ID пользователя"
+// @Param year query int true "Год"
+// @Param month query int true "Месяц"
 // @Success 200 {object} httpt.EventsResponse
 // @Failure 400 {object} httpt.ErrorResponse
 // @Failure 500 {object} httpt.ErrorResponse
@@ -245,30 +240,24 @@ func (h *CalendarHandler) getEventsForMonthsHandler(c *gin.Context) {
 	const op = "transport.getEventsForMonthsHandler"
 	log := h.log.Ctx(c.Request.Context())
 
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
-	if err != nil || id <= 0 {
-		h.handleEventIDError(c, op, id)
-		return
-	}
-
 	var req GetEventForMonthRequest
-	if svcErr := c.ShouldBindJSON(&req); svcErr != nil {
+	if svcErr := c.ShouldBindQuery(&req); svcErr != nil {
 		h.handleBindError(c, svcErr, op)
+		return
 	}
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), _defaultContextTimeout)
 	defer cancel()
 
-	event, err := h.svc.GetEventsForMonth(ctx, req.UserID, req.Year, req.Month)
+	events, err := h.svc.GetEventsForMonth(ctx, req.UserID, req.Year, req.Month)
 	if err != nil {
 		h.handleServiceError(c, err, op)
 		return
 	}
 
-	log.LogAttrs(ctx, logger.InfoLevel, "event for month retreived successfully",
-		logger.Slice("events", event),
+	log.LogAttrs(ctx, logger.InfoLevel, "events for month retrieved successfully",
+		logger.Int("count", len(events)),
 	)
 
-	c.JSON(http.StatusOK, event)
+	c.JSON(http.StatusOK, gin.H{"result": events})
 }

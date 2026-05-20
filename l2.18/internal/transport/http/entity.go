@@ -43,19 +43,19 @@ type DeleteEventRequest struct {
 
 // swagger: model GetEventForDayRequest
 type GetEventForDayRequest struct {
-	UserID uint64    `json:"user_id" binding:"required,gt=0"`
-	Date   time.Time `json:"date"    binding:"required"`
+	UserID uint64    `json:"user_id" form:"user_id" binding:"required,gt=0"`
+	Date   time.Time `json:"date"    form:"date"    binding:"required" time_format:"2006-01-02T15:04:05Z07:00"`
 }
 
 // swagger: model GetEventForWeekRequest
 type GetEventForWeekRequest struct {
-	UserID    uint64    `json:"user_id"    binding:"required,gt=0"`
-	StartDate time.Time `json:"start_date" binding:"required"`
+	UserID    uint64    `json:"user_id"    form:"user_id"    binding:"required,gt=0"`
+	StartDate time.Time `json:"start_date" form:"start_date" binding:"required" time_format:"2006-01-02T15:04:05Z07:00"`
 }
 
 // swagger: model GetEventForMonthRequest
 type GetEventForMonthRequest struct {
-	UserID uint64 `json:"user_id" binding:"required,gt=0"`
-	Year   int    `json:"year"    binding:"required"`
-	Month  int    `json:"month"   binding:"required"`
+	UserID uint64 `json:"user_id" form:"user_id" binding:"required,gt=0"`
+	Year   int    `json:"year"    form:"year"    binding:"required"`
+	Month  int    `json:"month"   form:"month"   binding:"required"`
 }

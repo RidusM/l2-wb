@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Календарь событий — Панель управления</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <header class="mb-8 border-b border-slate-200 pb-4">
+            <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Управление событиями календаря</h1>
+            <p class="text-slate-500 mt-1">Клиентская панель для ИС «Календарь» (API: Gin-Gonic)</p>
+        </header>
+
+        <!-- Навигационные табы -->
+        <nav class="flex gap-2 p-1 bg-slate-200/60 rounded-xl mb-6 max-w-xl">
+            <button onclick="switchTab('create-tab')" id="btn-create-tab" class="tab-btn flex-1 py-2 px-3 text-sm font-medium rounded-lg bg-white shadow-xs text-slate-900">Создать / Обновить</button>
+            <button onclick="switchTab('view-tab')" id="btn-view-tab" class="tab-btn flex-1 py-2 px-3 text-sm font-medium rounded-lg text-slate-600 hover:text-slate-900">Просмотр списков</button>
+            <button onclick="switchTab('delete-tab')" id="btn-delete-tab" class="tab-btn flex-1 py-2 px-3 text-sm font-medium rounded-lg text-slate-600 hover:text-slate-900">Удаление</button>
+        </nav>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- ЛЕВАЯ КОЛОНКА: Формы управления -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit">
+                
+                <!-- ТАБ 1: Создание и Обновление -->
+                <div id="create-tab" class="tab-content active space-y-4">
+                    <h2 class="text-xl font-bold text-slate-900 mb-2">Сохранение события</h2>
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Режим</label>
+                        <select id="event-mode" onchange="toggleMode()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-indigo-500">
+                            <option value="POST|/create_event">Создать новое (POST /create_event)</option>
+                            <option value="POST_ID|/update_event">Обновить существующее (POST /update_event/{id})</option>
+                        </select>
+                    </div>
+
+                    <div id="id-field-wrapper" class="hidden">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">ID События (для обновления)</label>
+                        <input type="number" id="event-id" placeholder="Например: 42" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-indigo-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">User ID</label>
+                        <input type="number" id="event-user-id" value="1" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-indigo-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Дата и время</label>
+                        <input type="datetime-local" id="event-date" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-indigo-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Заголовок (Title)</label>
+                        <input type="text" id="event-title" placeholder="Купить молока" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-indigo-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Описание (Text)</label>
+                        <textarea id="event-text" rows="3" placeholder="В магазине у дома, жирность 3.2%" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-indigo-500"></textarea>
+                    </div>
+
+                    <button onclick="submitEventForm()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition-colors shadow-xs">Отправить запрос</button>
+                </div>
+
+                <!-- ТАБ 2: Выборки (Просмотр) -->
+                <div id="view-tab" class="tab-content space-y-4">
+                    <h2 class="text-xl font-bold text-slate-900 mb-2">Получить события</h2>
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Тип выборки</label>
+                        <select id="view-type" onchange="toggleViewFields()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-indigo-500">
+                            <option value="GET|/events_for_day">На день (GET /events_for_day)</option>
+                            <option value="GET|/events_for_week">На неделю (GET /events_for_week)</option>
+                            <option value="GET|/events_for_month">На месяц (GET /events_for_month)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">User ID</label>
+                        <input type="number" id="view-user-id" value="1" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-indigo-500">
+                    </div>
+
+                    <!-- Поля динамически меняются в зависимости от типа выборки -->
+                    <div id="view-date-wrapper">
+                        <label id="view-date-label" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Дата</label>
+                        <input type="date" id="view-date" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-indigo-500">
+                    </div>
+
+                    <div id="view-month-wrapper" class="hidden grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Год</label>
+                            <input type="number" id="view-year" value="2026" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Месяц</label>
+                            <input type="number" id="view-month" value="5" min="1" max="12" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-indigo-500">
+                        </div>
+                    </div>
+
+                    <button onclick="submitViewForm()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg text-sm transition-colors shadow-xs">Запросить данные</button>
+                </div>
+
+                <!-- ТАБ 3: Удаление -->
+                <div id="delete-tab" class="tab-content space-y-4">
+                    <h2 class="text-xl font-bold text-slate-900 mb-2">Удалить событие</h2>
+                    <p class="text-xs text-rose-600 bg-rose-50 p-2 rounded-lg border border-rose-100">Внимание: Метод вызывается по стандарту POST (согласно Swagger /delete_event/{id})</p>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">ID События</label>
+                        <input type="number" id="delete-id" placeholder="ID записи в БД" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-rose-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">User ID (Владелец)</label>
+                        <input type="number" id="delete-user-id" value="1" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-hidden focus:border-rose-500">
+                    </div>
+
+                    <button onclick="submitDeleteForm()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-medium py-2 rounded-lg text-sm transition-colors shadow-xs">Удалить из календаря</button>
+                </div>
+
+            </div>
+
+            <!-- ПРАВАЯ КОЛОНКА: Терминал ответа сервера и рендеринг списков -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Панель статуса выполнения -->
+                <div class="bg-slate-900 text-slate-200 p-4 rounded-2xl font-mono text-xs shadow-md border border-slate-800">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                        <span class="text-slate-400 font-bold uppercase">HTTP Console</span>
+                        <span id="http-status" class="px-2 py-0.5 rounded-sm bg-slate-800 text-slate-400">IDLE</span>
+                    </div>
+                    <div><span class="text-indigo-400">Запрос:</span> <span id="debug-url">-</span></div>
+                    <div class="mt-2"><span class="text-emerald-400">Ответ JSON:</span></div>
+                    <pre id="debug-response" class="mt-1 overflow-x-auto text-slate-300 max-h-40">{}</pre>
+                </div>
+
+                <!-- Сетка/Список полученных сущностей -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm min-h-[300px]">
+                    <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center justify-between">
+                        <span>Полученные результаты</span>
+                        <span id="counter" class="text-xs font-normal bg-slate-100 text-slate-600 px-2 py-1 rounded-md">0 элементов</span>
+                    </h3>
+                    <div id="results-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <p class="text-slate-400 text-sm col-span-2 text-center py-12 italic">Сделайте запрос для загрузки структуры данных или логов</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Установка дефолтных дат (сегодняшнее число)
+        document.getElementById('view-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('event-date').value = new Date().toISOString().substring(0, 16);
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.className = "tab-btn flex-1 py-2 px-3 text-sm font-medium rounded-lg text-slate-600 hover:text-slate-900");
+            
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('btn-' + tabId).className = "tab-btn flex-1 py-2 px-3 text-sm font-medium rounded-lg bg-white shadow-xs text-slate-900";
+        }
+
+        function toggleMode() {
+            const mode = document.getElementById('event-mode').value;
+            const idWrapper = document.getElementById('id-field-wrapper');
+            if (mode.startsWith('POST_ID')) {
+                idWrapper.classList.remove('hidden');
+            } else {
+                idWrapper.classList.add('hidden');
+            }
+        }
+
+        function toggleViewFields() {
+            const type = document.getElementById('view-type').value;
+            const dateWrapper = document.getElementById('view-date-wrapper');
+            const monthWrapper = document.getElementById('view-month-wrapper');
+            const dateLabel = document.getElementById('view-date-label');
+
+            if (type.includes('month')) {
+                dateWrapper.classList.add('hidden');
+                monthWrapper.classList.remove('hidden');
+            } else {
+                dateWrapper.classList.remove('hidden');
+                monthWrapper.classList.add('hidden');
+                dateLabel.innerText = type.includes('week') ? 'Дата начала недели' : 'Дата';
+            }
+        }
+
+        async function makeRequest(url, method, body = null) {
+            const statusEl = document.getElementById('http-status');
+            const debugUrlEl = document.getElementById('debug-url');
+            const debugResEl = document.getElementById('debug-response');
+            
+            debugUrlEl.innerText = `[${method}] ${url}`;
+            statusEl.innerText = 'PENDING...';
+            statusEl.className = 'px-2 py-0.5 rounded-sm bg-yellow-500/20 text-yellow-400 font-bold';
+
+            try {
+                const options = {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' }
+                };
+                if (body) options.body = JSON.stringify(body);
+
+                const response = await fetch(url, options);
+                const data = await response.json();
+                
+                statusEl.innerText = response.status;
+                if (response.ok) {
+                    statusEl.className = 'px-2 py-0.5 rounded-sm bg-emerald-500/20 text-emerald-400 font-bold';
+                } else {
+                    statusEl.className = 'px-2 py-0.5 rounded-sm bg-rose-500/20 text-rose-400 font-bold';
+                }
+                
+                debugResEl.innerText = JSON.stringify(data, null, 2);
+                return data;
+            } catch (err) {
+                statusEl.innerText = 'ERROR';
+                statusEl.className = 'px-2 py-0.5 rounded-sm bg-rose-500/20 text-rose-400 font-bold';
+                debugResEl.innerText = err.toString();
+                return null;
+            }
+        }
+
+        async function submitEventForm() {
+            const modeVal = document.getElementById('event-mode').value;
+            const userId = parseInt(document.getElementById('event-user-id').value);
+            const dateVal = document.getElementById('event-date').value;
+            const title = document.getElementById('event-title').value;
+            const text = document.getElementById('event-text').value;
+
+            // Форматирование даты в RFC3339, как требует Go time.Time
+            const isoDate = new Date(dateVal).toISOString();
+
+            const payload = {
+                user_id: userId,
+                date: isoDate,
+                title: title,
+                text: text
+            };
+
+            if (modeVal.startsWith('POST_ID')) {
+                const id = document.getElementById('event-id').value;
+                if(!id) return alert('Введите ID события для обновления');
+                await makeRequest(`/update_event/${id}`, 'POST', payload);
+            } else {
+                await makeRequest('/create_event', 'POST', payload);
+            }
+        }
+
+        async function submitViewForm() {
+    const typeVal = document.getElementById('view-type').value; 
+    const endpoint = typeVal.split('|')[1];
+    const userId = parseInt(document.getElementById('view-user-id').value);
+    
+    // Формируем параметры URL строки (Query string)
+    const params = new URLSearchParams();
+    params.append('user_id', userId);
+
+    if (endpoint.includes('month')) {
+        params.append('year', parseInt(document.getElementById('view-year').value));
+        params.append('month', parseInt(document.getElementById('view-month').value));
+    } else {
+        const dateVal = document.getElementById('view-date').value;
+        const isoDate = new Date(dateVal).toISOString(); // Перевод в RFC3339
+        if (endpoint.includes('week')) {
+            params.append('start_date', isoDate);
+        } else {
+            params.append('date', isoDate);
+        }
+    }
+
+    // Отправляем чистый GET без Body, параметры прилинкованы к URL
+    const fullUrl = `${endpoint}?${params.toString()}`;
+    const response = await makeRequest(fullUrl, 'GET');
+    renderEvents(response);
+}
+
+        async function submitDeleteForm() {
+            const id = document.getElementById('delete-id').value;
+            const userId = parseInt(document.getElementById('delete-user-id').value);
+            if (!id) return alert('Укажите ID для удаления');
+
+            const payload = { user_id: userId };
+            await makeRequest(`/delete_event/${id}`, 'POST', payload);
+        }
+
+        function renderEvents(data) {
+            const container = document.getElementById('results-container');
+            const counter = document.getElementById('counter');
+            container.innerHTML = '';
+
+            // Учитываем разную структуру ваших ответов в Go-коде (где-то event, где-то в ключе .result)
+            let list = [];
+            if (data) {
+                if (Array.isArray(data)) list = data;
+                else if (data.result && Array.isArray(data.result)) list = data.result;
+                else if (typeof data === 'object' && Object.keys(data).length > 0 && !data.error) list = [data]; 
+            }
+
+            counter.innerText = `${list.length} элементов`;
+
+            if (list.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 text-sm col-span-2 text-center py-12 italic">Событий не найдено или получен пустой массив</p>`;
+                return;
+            }
+
+            list.forEach(ev => {
+                if(!ev || !ev.title) return;
+                const card = document.createElement('div');
+                card.className = "p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:shadow-xs transition-all space-y-2";
+                
+                // Красивый парсинг даты
+                let formattedDate = ev.date;
+                try { formattedDate = new Date(ev.date).toLocaleString('ru-RU'); } catch(e){}
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <span class="inline-block bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-sm">ID: ${ev.id || 'N/A'}</span>
+                        <span class="text-slate-400 text-xs font-mono">User: ${ev.user_id || 'N/A'}</span>
+                    </div>
+                    <h4 class="font-semibold text-slate-900">${ev.title}</h4>
+                    <p class="text-xs text-slate-600 line-clamp-3">${ev.text || '<без описания>'}</p>
+                    <div class="pt-2 border-t border-slate-100 text-[11px] text-slate-400 flex justify-between">
+                        <span>📅 ${formattedDate}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
