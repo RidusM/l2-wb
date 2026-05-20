@@ -19,7 +19,6 @@ type RobotsParser struct {
 	DefaultRule *RobotsRule
 }
 
-// NewRobotsParser создает парсер robots.txt
 func NewRobotsParser(content string) *RobotsParser {
 	parser := &RobotsParser{
 		Rules: make([]RobotsRule, 0),
@@ -31,7 +30,6 @@ func NewRobotsParser(content string) *RobotsParser {
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
-		// Пропускаем комментарии и пустые строки
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
@@ -46,14 +44,12 @@ func NewRobotsParser(content string) *RobotsParser {
 
 		switch key {
 		case "user-agent":
-			// Сохраняем предыдущее правило
 			if currentRule != nil {
 				parser.Rules = append(parser.Rules, *currentRule)
 				if currentRule.UserAgent == "*" {
 					parser.DefaultRule = currentRule
 				}
 			}
-			// Начинаем новое правило
 			currentRule = &RobotsRule{
 				UserAgent:  value,
 				Disallow:   make([]string, 0),
@@ -80,7 +76,6 @@ func NewRobotsParser(content string) *RobotsParser {
 		}
 	}
 
-	// Сохраняем последнее правило
 	if currentRule != nil {
 		parser.Rules = append(parser.Rules, *currentRule)
 		if currentRule.UserAgent == "*" {
@@ -91,9 +86,7 @@ func NewRobotsParser(content string) *RobotsParser {
 	return parser
 }
 
-// IsAllowed проверяет, разрешен ли путь для данного User-Agent
 func (rp *RobotsParser) IsAllowed(urlPath, userAgent string) bool {
-	// Ищем правило для конкретного User-Agent
 	var rule *RobotsRule
 	userAgent = strings.ToLower(userAgent)
 
@@ -104,36 +97,32 @@ func (rp *RobotsParser) IsAllowed(urlPath, userAgent string) bool {
 		}
 	}
 
-	// Если не найдено, используем правило по умолчанию
 	if rule == nil {
 		rule = rp.DefaultRule
 	}
 
 	if rule == nil {
-		return true // Нет правил - разрешено
+		return true
 	}
 
-	// Сначала проверяем Allow (более специфичные правила)
 	for _, allowPath := range rule.Allow {
 		if strings.HasPrefix(urlPath, allowPath) {
 			return true
 		}
 	}
 
-	// Затем проверяем Disallow
 	for _, disallowPath := range rule.Disallow {
 		if disallowPath == "/" {
-			return false // Запрещено всё
+			return false
 		}
 		if strings.HasPrefix(urlPath, disallowPath) {
 			return false
 		}
 	}
 
-	return true // По умолчанию разрешено
+	return true
 }
 
-// GetCrawlDelay возвращает задержку для User-Agent
 func (rp *RobotsParser) GetCrawlDelay(userAgent string) time.Duration {
 	userAgent = strings.ToLower(userAgent)
 

@@ -220,9 +220,9 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Опции:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\nПримеры:\n")
-		fmt.Fprintf(os.Stderr, "  %s -host=telehack.com -port=23\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "  %s -host=localhost -port=8080 -timeout=5s\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "  %s -host=smtp.gmail.com -port=25\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s -host telehack.com -port 23\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s -host localhost -port 8080 -timeout 5s\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s -host smtp.gmail.com -port 25\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "\nДля завершения нажмите Ctrl+D или Ctrl+C\n")
 	}
 
