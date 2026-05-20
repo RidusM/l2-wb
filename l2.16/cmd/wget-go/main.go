@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-	// Параметры командной строки
 	targetURL := flag.String("url", "", "URL для загрузки (обязательный)")
 	depth := flag.Int("depth", 2, "Глубина рекурсии")
 	concurrent := flag.Int("concurrent", 5, "Количество одновременных загрузок")
