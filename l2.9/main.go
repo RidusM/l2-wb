@@ -51,13 +51,13 @@ func Unpack(s string) (string, error) {
 				return "", ErrInvalidString
 			}
 
-			digitStr := string(r)
+			var digitStr strings.Builder; digitStr.WriteString(string(r))
 			for i+1 < len(runes) && unicode.IsDigit(runes[i+1]) {
 				i++
-				digitStr += string(runes[i])
+				digitStr .WriteString(string(runes[i]))
 			}
 
-			count, err := strconv.Atoi(digitStr)
+			count, err := strconv.Atoi(digitStr.String())
 			if err != nil {
 				return "", ErrInvalidString
 			}
